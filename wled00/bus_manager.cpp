@@ -3,6 +3,7 @@
  */
 
 #include <Arduino.h>
+#include <SPI.h>
 #include <IPAddress.h>
 #ifdef ARDUINO_ARCH_ESP32
 #include <ESPmDNS.h>
@@ -180,18 +181,46 @@ BusDigital::BusDigital(const BusConfig &bc, uint8_t nr)
     _pins[1] = bc.pins[1];
     _frequencykHz = bc.frequency ? bc.frequency : 2000U; // 2MHz clock if undefined
   }
+  if (is3Pin(bc.type)) {
+    if (!PinManager::allocatePin(bc.pins[2], true, PinOwner::BusDigital)) {
+      cleanup();
+      DEBUGBUS_PRINTLN(F("Pin 2 allocated!"));
+      return;
+    }
+    _pins[2] = bc.pins[2];
+  }
   _iType = PolyBus::getI(bc.type, _pins, nr);
-  if (_iType == I_NONE) { DEBUGBUS_PRINTLN(F("Incorrect iType!")); return; }
+  if (_iType == I_NONE && bc.type != TYPE_SPI_SHIFT_REGISTER_RGB) { DEBUGBUS_PRINTLN(F("Incorrect iType!")); return; }
   _hasRgb = hasRGB(bc.type);
   _hasWhite = hasWhite(bc.type);
   _hasCCT = hasCCT(bc.type);
-  uint16_t lenToCreate = bc.count;
-  if (bc.type == TYPE_WS2812_1CH_X3) lenToCreate = NUM_ICS_WS2812_1CH_3X(bc.count); // only needs a third of "RGB" LEDs for NeoPixelBus
-  _busPtr = PolyBus::create(_iType, _pins, lenToCreate + _skip, nr);
-  _valid = (_busPtr != nullptr) && bc.count > 0;
-  // fix for wled#4759
-  if (_valid) for (unsigned i = 0; i < _skip; i++) {
-    PolyBus::setPixelColor(_busPtr, _iType, i, 0, COL_ORDER_GRB); // set sacrificial pixels to black (CO does not matter here)
+  if (bc.type == TYPE_SPI_SHIFT_REGISTER_RGB) {
+    _iType = I_NONE;
+    _bufferSize = bc.count * 3 * 2;
+    _shiftBuffer = (uint16_t*)d_malloc(_bufferSize);
+    if (!_shiftBuffer) {
+      cleanup();
+      DEBUGBUS_PRINTLN(F("SPI Shift buffer allocation failed!"));
+      return;
+    }
+    memset(_shiftBuffer, 0, _bufferSize);
+    _busPtr = nullptr;
+    _valid = bc.count > 0;
+    // set pin modes
+    pinMode(_pins[0], OUTPUT);
+    pinMode(_pins[1], OUTPUT);
+    pinMode(_pins[2], OUTPUT);
+    // initialize SPI
+    SPI.begin(_pins[0], -1, _pins[1], -1); // SCK, MISO, MOSI, SS
+  } else {
+    uint16_t lenToCreate = bc.count;
+    if (bc.type == TYPE_WS2812_1CH_X3) lenToCreate = NUM_ICS_WS2812_1CH_3X(bc.count); // only needs a third of "RGB" LEDs for NeoPixelBus
+    _busPtr = PolyBus::create(_iType, _pins, lenToCreate + _skip, nr);
+    _valid = (_busPtr != nullptr) && bc.count > 0;
+    // fix for wled#4759
+    if (_valid) for (unsigned i = 0; i < _skip; i++) {
+      PolyBus::setPixelColor(_busPtr, _iType, i, 0, COL_ORDER_GRB); // set sacrificial pixels to black (CO does not matter here)
+    }
   }
   DEBUGBUS_PRINTF_P(PSTR("Bus: %successfully inited #%u (len:%u, type:%u (RGB:%d, W:%d, CCT:%d), pins:%u,%u [itype:%u] mA=%d/%d)\n"),
     _valid?"S":"Uns",
@@ -269,8 +298,18 @@ void BusDigital::applyBriLimit(uint8_t newBri) {
 
 void BusDigital::show() {
   if (!_valid) return;
-  _NPBbri = (_NPBbri * _bri) / 255;      // total applied brightness for use in restoreColorLossy (see applyBriLimit())
-  PolyBus::show(_busPtr, _iType, _skip); // faster if buffer consistency is not important (no skipped LEDs)
+  if (_type == TYPE_SPI_SHIFT_REGISTER_RGB) {
+    digitalWrite(_pins[2], LOW);
+    for (int i = 0; i < _len; i++) {
+      SPI.transfer16(_shiftBuffer[i*3 + 0]); // R
+      SPI.transfer16(_shiftBuffer[i*3 + 1]); // G
+      SPI.transfer16(_shiftBuffer[i*3 + 2]); // B
+    }
+    digitalWrite(_pins[2], HIGH);
+  } else {
+    _NPBbri = (_NPBbri * _bri) / 255;      // total applied brightness for use in restoreColorLossy (see applyBriLimit())
+    PolyBus::show(_busPtr, _iType, _skip); // faster if buffer consistency is not important (no skipped LEDs)
+  }
 }
 
 bool BusDigital::canShow() const {
@@ -323,7 +362,15 @@ void IRAM_ATTR BusDigital::setPixelColor(unsigned pix, uint32_t c) {
     wwcw = (cctCW<<8) | cctWW;
     if (_type == TYPE_WS2812_WWA) c = RGBW32(cctWW, cctCW, 0, W(c));
   }
-  PolyBus::setPixelColor(_busPtr, _iType, pix, c, co, wwcw);
+  if (_type == TYPE_SPI_SHIFT_REGISTER_RGB) {
+    // apply gamma correction and store in buffer
+    uint8_t r = R(c), g = G(c), b = B(c);
+    _shiftBuffer[pix*3 + 0] = ((uint16_t)gamma8(r)) << 8;
+    _shiftBuffer[pix*3 + 1] = ((uint16_t)gamma8(g)) << 8;
+    _shiftBuffer[pix*3 + 2] = ((uint16_t)gamma8(b)) << 8;
+  } else {
+    PolyBus::setPixelColor(_busPtr, _iType, pix, c, co, wwcw);
+  }
 }
 
 // returns lossly restored color from bus
@@ -351,7 +398,7 @@ uint32_t IRAM_ATTR BusDigital::getPixelColor(unsigned pix) const {
 }
 
 size_t BusDigital::getPins(uint8_t* pinArray) const {
-  unsigned numPins = is2Pin(_type) + 1;
+  unsigned numPins = is3Pin(_type) ? 3 : is2Pin(_type) ? 2 : 1;
   if (pinArray) for (unsigned i = 0; i < numPins; i++) pinArray[i] = _pins[i];
   return numPins;
 }
@@ -389,6 +436,7 @@ std::vector<LEDType> BusDigital::getLEDTypes() {
     {TYPE_LPD8806,       "2P", PSTR("LPD8806")},
     {TYPE_LPD6803,       "2P", PSTR("LPD6803")},
     {TYPE_P9813,         "2P", PSTR("PP9813")},
+    {TYPE_SPI_SHIFT_REGISTER_RGB, "3P", PSTR("DayPix SPI")},
   };
 }
 

@@ -325,6 +325,8 @@ static_assert(WLED_MAX_BUSSES <= 32, "WLED_MAX_BUSSES exceeds hard limit");
 #define TYPE_LPD6803             54
 #define TYPE_2PIN_MAX            63
 
+#define TYPE_SPI_SHIFT_REGISTER_RGB 60
+
 #define TYPE_HUB75MATRIX_MIN     64
 #define TYPE_HUB75MATRIX_HS      65
 #define TYPE_HUB75MATRIX_QS      66

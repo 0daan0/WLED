@@ -186,6 +186,11 @@ void handleSettingsSet(AsyncWebServerRequest *request, byte subPage)
         pins[i] = (request->arg(lp).length() > 0) ? request->arg(lp).toInt() : 255;
       }
       type = request->arg(lt).toInt();
+      if (type == TYPE_SPI_SHIFT_REGISTER_RGB) {
+        pins[0] = 12;
+        pins[1] = 14;
+        pins[2] = 15;
+      }
       skip = request->arg(sl).toInt();
       colorOrder = request->arg(co).toInt();
       start = (request->hasArg(ls)) ? request->arg(ls).toInt() : t;

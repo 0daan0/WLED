@@ -23,7 +23,11 @@
 		function hasCCT(t) { return !!(gT(t).c & 0x04); }           // is white CCT enabled
 		function is16b(t)  { return !!(gT(t).c & 0x10); }           // is digital 16 bit type
 		function mustR(t)  { return !!(gT(t).c & 0x20); }           // Off refresh is mandatory
-		function numPins(t){ return Math.max(gT(t).t.length, 1); }  // type length determines number of GPIO pins
+		function numPins(t){
+			const tt = gT(t).t;
+			if (tt === "3P") return 3; // explicit 3-pin digital (Data, Clock, Latch)
+			return Math.max(tt.length, 1);
+		}  // type string determines number of GPIO pins
 		function chrID(x)  { return String.fromCharCode((x<10?48:55)+x); }
 		function toNum(c)  { let n=c.charCodeAt(0); return (n>=48 && n<=57)?n-48:(n>=65 && n<=90)?n-55:0; } // convert char (0-9A-Z) to number (0-35)
 		function S() {
@@ -231,8 +235,15 @@
 			let setPinConfig = (n,t) => {
 				let p0d = "GPIO:";
 				let p1d = "";
+				let p2d = "";
 				let off = "Off Refresh";
-				switch (gT(t).t.charAt(0)) {
+				const tt = gT(t).t;
+				switch (tt.charAt(0)) {
+					case '3': // 3 pin digital (Data, Clock, Latch)
+						p2d = "Latch "+p0d;
+						p1d = "Clock "+p0d;
+						p0d = "Data "+p0d;
+						break;
 					case '2': // 2 pin digital
 						p1d = "Clock "+p0d;
 						// fallthrough
@@ -255,9 +266,10 @@
 				}
 				gId("p0d"+n).innerText = p0d;
 				gId("p1d"+n).innerText = p1d;
+				gId("p2d"+n).innerText = p2d;
 				gId("off"+n).innerText = off;
 				// secondary pins show/hide (type string length is equivalent to number of pins used; except for network and on/off)
-				let pins = Math.max(gT(t).t.length,1) + 3*isNet(t) + 2*isHub75(t); // fixes network pins to 4
+				let pins = numPins(t) + 3*isNet(t) + 2*isHub75(t); // fixes network pins to 4
 				for (let p=1; p<5; p++) {
 					var LK = d.Sf["L"+p+n];
 					if (!LK) continue;

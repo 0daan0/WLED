@@ -166,7 +166,7 @@ class Bus {
     inline  bool     containsPixel(uint16_t pix) const          { return pix >= _start && pix < _start + _len; }
 
     static inline std::vector<LEDType> getLEDTypes()            { return {{TYPE_NONE, "", PSTR("None")}}; } // not used. just for reference for derived classes
-    static constexpr size_t   getNumberOfPins(uint8_t type)     { return isVirtual(type) ? 4 : isPWM(type) ? numPWMPins(type) : isHub75(type) ? 3 : is2Pin(type) + 1; } // credit @PaoloTK
+    static constexpr size_t   getNumberOfPins(uint8_t type)     { return isVirtual(type) ? 4 : isPWM(type) ? numPWMPins(type) : isHub75(type) ? 3 : is3Pin(type) ? 3 : is2Pin(type) ? 2 : 1; } // credit @PaoloTK
     static constexpr size_t   getNumberOfChannels(uint8_t type) { return hasWhite(type) + 3*hasRGB(type) + hasCCT(type); }
     static constexpr bool hasRGB(uint8_t type) {
       return !((type >= TYPE_WS2812_1CH && type <= TYPE_WS2812_WWA) || type == TYPE_ANALOG_1CH || type == TYPE_ANALOG_2CH || type == TYPE_ONOFF);
@@ -185,8 +185,9 @@ class Bus {
               type == TYPE_SM16825;
     }
     static constexpr bool  isTypeValid(uint8_t type)  { return (type > 15 && type < 128); }
-    static constexpr bool  isDigital(uint8_t type)    { return (type >= TYPE_DIGITAL_MIN && type <= TYPE_DIGITAL_MAX) || is2Pin(type); }
+    static constexpr bool  isDigital(uint8_t type)    { return (type >= TYPE_DIGITAL_MIN && type <= TYPE_DIGITAL_MAX) || is2Pin(type) || is3Pin(type); }
     static constexpr bool  is2Pin(uint8_t type)       { return (type >= TYPE_2PIN_MIN && type <= TYPE_2PIN_MAX); }
+    static constexpr bool  is3Pin(uint8_t type)       { return type == TYPE_SPI_SHIFT_REGISTER_RGB; }
     static constexpr bool  isOnOff(uint8_t type)      { return (type == TYPE_ONOFF); }
     static constexpr bool  isPWM(uint8_t type)        { return (type >= TYPE_ANALOG_MIN && type <= TYPE_ANALOG_MAX); }
     static constexpr bool  isVirtual(uint8_t type)    { return (type >= TYPE_VIRTUAL_MIN && type <= TYPE_VIRTUAL_MAX); }
@@ -270,7 +271,7 @@ class BusDigital : public Bus {
   private:
     uint8_t  _skip;
     uint8_t  _colorOrder;
-    uint8_t  _pins[2];
+    uint8_t  _pins[3];
     uint8_t  _iType;
     uint16_t _frequencykHz;
     uint16_t _milliAmpsMax;
@@ -278,6 +279,8 @@ class BusDigital : public Bus {
     uint16_t _milliAmpsLimit;
     uint32_t _colorSum; // total color value for the bus, updated in setPixelColor(), used to estimate current
     void    *_busPtr;
+    uint16_t* _shiftBuffer;
+    size_t _bufferSize;
 
     static uint16_t _milliAmpsTotal; // is overwitten/recalculated on each show()
 

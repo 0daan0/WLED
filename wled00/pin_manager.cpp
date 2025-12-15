@@ -256,6 +256,7 @@ bool PinManager::isPinOk(byte gpio, bool output)
   if (gpio < 12) return false; //SPI flash pins
   if (gpio < 17) return true;
 #endif
+  if (gpio == 12 || gpio == 14 || gpio == 15) return true; // Allow GPIO12,14,15 for WT32-ETH01
   return false;
 }
 

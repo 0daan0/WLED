@@ -336,7 +336,7 @@ void getSettingsJS(byte subPage, Print& settingsScript)
       int nPins = bus->getPins(pins);
       for (int i = 0; i < nPins; i++) {
         lp[1] = '0'+i;
-        if (PinManager::isPinOk(pins[i]) || bus->isVirtual() || Bus::isHub75(bus->getType())) printSetFormValue(settingsScript,lp,pins[i]);
+        if (PinManager::isPinOk(pins[i]) || bus->isVirtual() || Bus::isHub75(bus->getType()) || bus->getType() == TYPE_SPI_SHIFT_REGISTER_RGB) printSetFormValue(settingsScript,lp,pins[i]);
       }
       printSetFormValue(settingsScript,lc,bus->getLength());
       printSetFormValue(settingsScript,lt,bus->getType());
