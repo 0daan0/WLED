@@ -319,7 +319,9 @@ bool deserializeConfig(JsonObject doc, bool fromFS) {
       unsigned start = 0;
       // analog always has length 1
       if (Bus::isPWM(dataType) || Bus::isOnOff(dataType)) count = 1;
-      busConfigs.emplace_back(dataType, defPin, start, count, DEFAULT_LED_COLOR_ORDER, false, 0, RGBW_MODE_MANUAL_ONLY, 0);
+      // DayPix SPI defaults to reversed
+      bool defaultReversed = (dataType == TYPE_SPI_SHIFT_REGISTER_RGB);
+      busConfigs.emplace_back(dataType, defPin, start, count, DEFAULT_LED_COLOR_ORDER, defaultReversed, 0, RGBW_MODE_MANUAL_ONLY, 0);
       doInitBusses = true;  // finalization done in beginStrip()
     }
   }

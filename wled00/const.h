@@ -615,9 +615,18 @@ static_assert(WLED_MAX_BUSSES <= 32, "WLED_MAX_BUSSES exceeds hard limit");
 #else
   #define DEFAULT_LED_PIN 16   // aligns with GPIO2 (D4) on Wemos D1 mini32 compatible boards (if it is unusable it will be reassigned in WS2812FX::finalizeInit())
 #endif
-#define DEFAULT_LED_TYPE TYPE_WS2812_RGB
-#define DEFAULT_LED_COUNT 30
 
+// Default LED type and count - ESP32-C3 uses DayPix SPI by default
+#if defined(CONFIG_IDF_TARGET_ESP32C3)
+  #define DEFAULT_LED_TYPE TYPE_SPI_SHIFT_REGISTER_RGB
+  #define DEFAULT_LED_COUNT 624
+  #define DEFAULT_DAYPIX_DATA_PIN 4
+  #define DEFAULT_DAYPIX_CLOCK_PIN 3
+  #define DEFAULT_DAYPIX_LATCH_PIN 5
+#else
+  #define DEFAULT_LED_TYPE TYPE_WS2812_RGB
+  #define DEFAULT_LED_COUNT 170
+#endif
 #define INTERFACE_UPDATE_COOLDOWN 1000 // time in ms to wait between websockets, alexa, and MQTT updates
 
 #define PIN_RETRY_COOLDOWN   3000 // time in ms after an incorrect attempt PIN and OTA pass will be rejected even if correct

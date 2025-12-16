@@ -363,11 +363,11 @@ void IRAM_ATTR BusDigital::setPixelColor(unsigned pix, uint32_t c) {
     if (_type == TYPE_WS2812_WWA) c = RGBW32(cctWW, cctCW, 0, W(c));
   }
   if (_type == TYPE_SPI_SHIFT_REGISTER_RGB) {
-    // apply gamma correction and store in buffer
+    // apply gamma correction (1.8 exponent) using lookup table and store in 16-bit buffer
     uint8_t r = R(c), g = G(c), b = B(c);
-    _shiftBuffer[pix*3 + 0] = ((uint16_t)gamma8(r)) << 8;
-    _shiftBuffer[pix*3 + 1] = ((uint16_t)gamma8(g)) << 8;
-    _shiftBuffer[pix*3 + 2] = ((uint16_t)gamma8(b)) << 8;
+    _shiftBuffer[pix*3 + 0] = pgm_read_word(&gamma16_1_8[r]);
+    _shiftBuffer[pix*3 + 1] = pgm_read_word(&gamma16_1_8[g]);
+    _shiftBuffer[pix*3 + 2] = pgm_read_word(&gamma16_1_8[b]);
   } else {
     PolyBus::setPixelColor(_busPtr, _iType, pix, c, co, wwcw);
   }

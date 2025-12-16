@@ -114,6 +114,9 @@ class NeoGammaWLEDMethod {
 #define gamma8(c)  NeoGammaWLEDMethod::rawGamma8(c)
 #define gamma32inv(c) NeoGammaWLEDMethod::inverseGamma32(c)
 #define gamma8inv(c)  NeoGammaWLEDMethod::rawInverseGamma8(c)
+
+// 16-bit gamma lookup table for DayPix SPI (gamma 1.8)
+extern const uint16_t gamma16_1_8[256];
 [[gnu::hot, gnu::pure]] uint32_t color_blend(uint32_t c1, uint32_t c2 , uint8_t blend);
 inline uint32_t color_blend16(uint32_t c1, uint32_t c2, uint16_t b) { return color_blend(c1, c2, b >> 8); };
 [[gnu::hot, gnu::pure]] uint32_t color_add(uint32_t, uint32_t, bool preserveCR = false);
