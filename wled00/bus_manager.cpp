@@ -451,8 +451,15 @@ void BusDigital::cleanup() {
   _iType = I_NONE;
   _valid = false;
   _busPtr = nullptr;
-  PinManager::deallocatePin(_pins[1], PinOwner::BusDigital);
-  PinManager::deallocatePin(_pins[0], PinOwner::BusDigital);
+  // Free SPI shift buffer if allocated
+  if (_shiftBuffer) {
+    d_free(_shiftBuffer);
+    _shiftBuffer = nullptr;
+  }
+  // Deallocate pins (handle up to 3 pins for 3-pin types)
+  if (_pins[2] != 255) PinManager::deallocatePin(_pins[2], PinOwner::BusDigital);
+  if (_pins[1] != 255) PinManager::deallocatePin(_pins[1], PinOwner::BusDigital);
+  if (_pins[0] != 255) PinManager::deallocatePin(_pins[0], PinOwner::BusDigital);
 }
 
 
