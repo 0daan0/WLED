@@ -1,6 +1,13 @@
 #define WLED_DEFINE_GLOBAL_VARS //only in one source file, wled.cpp!
 #include "wled.h"
 #include "wled_ethernet.h"
+
+#ifdef WLED_ENABLE_OLED
+#include "OledEsp.h"
+OledEsp oledDisplay;
+static byte lastRealtimeMode = REALTIME_MODE_INACTIVE;
+static unsigned long oledLastUpdate = 0;
+#endif
 #include "ota_update.h"
 #ifdef WLED_ENABLE_AOTA
   #define NO_OTA_PORT
@@ -88,6 +95,38 @@ void WLED::loop()
 
   yield();
   handleIO();
+#ifdef WLED_ENABLE_OLED
+  // Update OLED when realtimeMode changes or periodically during active realtime
+  if (realtimeMode != lastRealtimeMode || 
+      (realtimeMode && millis() - oledLastUpdate > 2000)) {
+    // Batch all updates to prevent flicker
+    oledDisplay.clear();
+    oledDisplay.addMessage(String(serverDescription));
+    IPAddress ip = Network.localIP();
+    char ipStr[16];
+    sprintf(ipStr, "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
+    oledDisplay.addMessage(String(ipStr));
+    
+    if (realtimeMode) {
+      const char* msg;
+      switch (realtimeMode) {
+        case REALTIME_MODE_UDP:      msg = "UDP RX"; break;
+        case REALTIME_MODE_HYPERION: msg = "Hyperion RX"; break;
+        case REALTIME_MODE_E131:     msg = "E1.31 RX"; break;
+        case REALTIME_MODE_ADALIGHT: msg = "Adalight RX"; break;
+        case REALTIME_MODE_ARTNET:   msg = "Art-Net RX"; break;
+        case REALTIME_MODE_TPM2NET:  msg = "TPM2.net RX"; break;
+        case REALTIME_MODE_DDP:      msg = "DDP RX"; break;
+        default:                     msg = "Live RX"; break;
+      }
+      oledDisplay.addMessage(msg);
+    }
+    
+    oledDisplay.update();  // Single update at the end
+    lastRealtimeMode = realtimeMode;
+    oledLastUpdate = millis();
+  }
+#endif
   #ifndef WLED_DISABLE_INFRARED
   handleIR();
   #endif
@@ -537,6 +576,15 @@ void WLED::setup()
   initServer();
   DEBUG_PRINTF_P(PSTR("heap %u\n"), getFreeHeapSize());
 
+#ifdef WLED_ENABLE_OLED
+  // Initialize OLED display
+  DEBUG_PRINTLN(F("initOLED"));
+  oledDisplay.begin();
+  oledDisplay.showMessage(String("WLED Starting..."));
+  oledDisplay.showMessage(String(serverDescription));
+  DEBUG_PRINTF_P(PSTR("heap %u\n"), getFreeHeapSize());
+#endif
+
 #ifndef WLED_DISABLE_INFRARED
   // init IR
   DEBUG_PRINTLN(F("initIR"));
@@ -636,6 +684,15 @@ void WLED::initAP(bool resetAP)
     dnsServer.start(53, "*", WiFi.softAPIP());
   }
   apActive = true;
+#ifdef WLED_ENABLE_OLED
+  // Show AP mode info on OLED
+  oledDisplay.clear();
+  oledDisplay.addMessage(String("AP Mode"));
+  oledDisplay.addMessage(String(apSSID));
+  oledDisplay.addMessage(String(apPass));
+  oledDisplay.addMessage(String("IP: 4.3.2.1"));
+  oledDisplay.update();
+#endif
 }
 
 void WLED::initConnection()
@@ -874,6 +931,17 @@ void WLED::handleConnection()
     initInterfaces();
     userConnected();
     UsermodManager::connected();
+
+#ifdef WLED_ENABLE_OLED
+    // Update OLED with connection info
+    oledDisplay.clear();
+    oledDisplay.showMessage(String("WLED Connected"));
+    oledDisplay.showMessage(String(serverDescription));
+    IPAddress ip = Network.localIP();
+    char ipStr[16];
+    sprintf(ipStr, "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
+    oledDisplay.showMessage(String("IP: ") + String(ipStr));
+#endif
     lastMqttReconnectAttempt = 0; // force immediate update
 
     // shut down AP

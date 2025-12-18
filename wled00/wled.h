@@ -9,6 +9,11 @@
 // version code in format yymmddb (b = daily build)
 #define VERSION 2506160
 
+// Enable OLED display for ESP32-C3 only
+#if defined(CONFIG_IDF_TARGET_ESP32C3)
+  #define WLED_ENABLE_OLED
+#endif
+
 //uncomment this if you have a "my_config.h" file you'd like to use
 //#define WLED_USE_MY_CONFIG
 
@@ -427,7 +432,7 @@ WLED_GLOBAL byte briMultiplier _INIT(100);          // % of brightness to set (t
 
 // User Interface CONFIG
 #ifndef SERVERNAME
-WLED_GLOBAL char serverDescription[33] _INIT("WLED");  // Name of module - use default
+WLED_GLOBAL char serverDescription[33] _INIT("DayLED");  // Name of module - use default
 #else
 WLED_GLOBAL char serverDescription[33] _INIT(SERVERNAME);  // use predefined name
 #endif

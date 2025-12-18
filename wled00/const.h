@@ -27,17 +27,19 @@ constexpr size_t FIXED_PALETTE_COUNT = DYNAMIC_PALETTE_COUNT + FASTLED_PALETTE_C
 // -D WLED_BRAND="\"Custom Brand\""
 // -D WLED_PRODUCT_NAME="\"Custom Product\""
 #ifndef WLED_BRAND
-  #define WLED_BRAND "WLED"
+  #define WLED_BRAND "DayLED"
 #endif
 #ifndef WLED_PRODUCT_NAME
   #define WLED_PRODUCT_NAME "FOSS"
 #endif
 
+#define WLED_AP_SSID_UNIQUE
+
 //Defaults
 #define DEFAULT_CLIENT_SSID "Your_Network"
 #define DEFAULT_AP_SSID     WLED_BRAND "-AP"
-#define DEFAULT_AP_PASS     "wled1234"
-#define DEFAULT_OTA_PASS    "wledota"
+#define DEFAULT_AP_PASS     "dled1234"
+#define DEFAULT_OTA_PASS    "dledota"
 #define DEFAULT_MDNS_NAME   "x"
 
 //increase if you need more
@@ -622,7 +624,7 @@ static_assert(WLED_MAX_BUSSES <= 32, "WLED_MAX_BUSSES exceeds hard limit");
   #define DEFAULT_LED_COUNT 624
   #define DEFAULT_DAYPIX_DATA_PIN 4
   #define DEFAULT_DAYPIX_CLOCK_PIN 3
-  #define DEFAULT_DAYPIX_LATCH_PIN 5
+  #define DEFAULT_DAYPIX_LATCH_PIN 7
 #else
   #define DEFAULT_LED_TYPE TYPE_WS2812_RGB
   #define DEFAULT_LED_COUNT 170
