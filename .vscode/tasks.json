@@ -1,42 +1,53 @@
 {
-  "version": "2.0.0",
-  "tasks": [
-    {
-      "label": "Build: HTML and binary",
-      "dependsOn": [
-        "Build: HTML only",
-        "Build: binary only"
-      ],
-      "dependsOrder": "sequence",
-      "problemMatcher": [
-        "$platformio"
-      ]
-    },
-    {
-      "type": "PlatformIO",
-      "label": "Build: binary only",
-      "task": "Build",
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      },
-      "problemMatcher": [
-        "$platformio"
-      ],
-      "presentation": {
-        "panel": "shared"
-      }
-    },
-    {
-      "type": "npm",
-      "script": "build",
-      "group": "build",
-      "problemMatcher": [],
-      "label": "Build: HTML only",
-      "detail": "npm run build",
-      "presentation": {
-        "panel": "shared"
-      }
-    }
-  ]
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build: HTML and binary",
+			"dependsOn": [
+				"Build: HTML only",
+				"Build: binary only"
+			],
+			"dependsOrder": "sequence",
+			"problemMatcher": [
+				"$platformio"
+			]
+		},
+		{
+			"type": "PlatformIO",
+			"label": "Build: binary only",
+			"task": "Build",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": [
+				"$platformio"
+			],
+			"presentation": {
+				"panel": "shared"
+			}
+		},
+		{
+			"type": "npm",
+			"script": "build",
+			"group": "build",
+			"problemMatcher": [],
+			"label": "Build: HTML only",
+			"detail": "npm run build",
+			"presentation": {
+				"panel": "shared"
+			}
+		},
+		{
+			"label": "Build esp32_eth now",
+			"type": "shell",
+			"command": "C:\\Users\\danie\\.platformio\\penv\\Scripts\\platformio.exe",
+			"args": [
+				"run",
+				"--environment",
+				"esp32_eth"
+			],
+			"problemMatcher": []
+		}
+	]
 }
